@@ -25,7 +25,7 @@ folder_data="data"
 #示例图片采集的面孔放置的文件夹
 folder_videos="videos"
 #放置视频的文件夹
-filenam_video_input= "1.mp4"
+filename_video_input= "8.mp4"
 #需要cut的源视频，需要放置在folder_videos文件夹中
 filename_video_output= "result.mp4"
 #cut完成后导出的视频名，将会放置在folder_videos文件夹中
@@ -104,9 +104,8 @@ def generate():
 
 def face_dectect():
     total_face_encoding=pickle.load(open(filename_face_encodings,'rb'))
-    random.shuffle(total_face_encoding)
-    total_face_encoding=total_face_encoding
-    video = cv2.VideoCapture(filenam_video_input)
+    file_video=os.path.join(folder_videos,filename_video_input)
+    video = cv2.VideoCapture(file_video)
     frame_count = 1
     success = True
     begin = time.time()
@@ -137,7 +136,7 @@ def face_dectect():
         cv2.waitKey(1)
     end = time.time()
     print("识别视频帧共计用时{}秒".format(round(float(end - begin), 3)))
-    with io.open(os.path.join(folder_videos,),"w",encoding="utf-8") as fd:
+    with io.open(os.path.join(folder_videos,filename_static),"w",encoding="utf-8") as fd:
         text = json.dumps(total, ensure_ascii=False, indent=4)
         fd.write(text)
     video.release()
@@ -173,7 +172,7 @@ def analyse():
         label+=1
         filename="cut{}.mp4".format(label)
         file_output=os.path.join(folder_videos,filename)
-        command=command_video_cut.format(start, to, filenam_video_input, file_output)
+        command=command_video_cut.format(start, to, filename_video_input, file_output)
         shell = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
         shell.wait()
         print(command)
@@ -191,12 +190,13 @@ def init():
         os.mkdir(folder_data)
     if not os.path.exists(folder_images):
         os.mkdir(folder_images)
-    if not os.path.exists(filename_face_encodings):
-        #如果face_encoding文件不存在，就进行采集
-        generate()
+
 
 def main():
     init()
+    if not os.path.exists(filename_face_encodings):
+        #如果face_encoding文件不存在，就进行采集
+        generate()
     face_dectect()
     analyse()
 
