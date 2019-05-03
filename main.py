@@ -98,6 +98,10 @@ def generate_face_encodings():
     with open(filename_face_encodings,'wb') as fd:
         pickle.dump(total_face_encoding,fd)
 
+def generate():
+    generate_data_set()
+    generate_face_encodings()
+
 def face_dectect():
     total_face_encoding=pickle.load(open(filename_face_encodings,'rb'))
     random.shuffle(total_face_encoding)
@@ -189,8 +193,7 @@ def init():
         os.mkdir(folder_images)
     if not os.path.exists(filename_face_encodings):
         #如果face_encoding文件不存在，就进行采集
-        generate_data_set()
-        generate_face_encodings()
+        generate()
 
 def main():
     init()
