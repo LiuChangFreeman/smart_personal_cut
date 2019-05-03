@@ -14,6 +14,7 @@ Python库:
 
 使用方法:
 
+0. 运行 python main.py init
 1. 将目标嘉宾的照片放到images文件夹
 2. 运行 python main.py generate_data_set
 3. 在data文件夹人工筛选不合格的照片，保留大约2000张(作者并没有实验过其他数值)
