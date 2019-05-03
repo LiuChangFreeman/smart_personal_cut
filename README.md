@@ -1,5 +1,5 @@
 # 智能单人cut
-本工具可以根据提供的素材，学习并识别影视节目中的某位角色，并且根据识别的结果，对提供的视频进行单人CUT
+本工具可以根据提供的素材，学习并识别影视节目中的某位人物，并且根据识别的结果，对提供的视频进行单人CUT
 
 基础工具:
 
@@ -15,7 +15,7 @@ Python库:
 使用方法:
 
 0. 运行 python main.py init
-1. 将目标嘉宾的照片放到images文件夹
+1. 将目标人物的照片放到images文件夹
 2. 运行 python main.py generate_data_set
 3. 在data文件夹人工筛选不合格的照片，保留大约2000张(作者并没有实验过其他数值)
 4. 运行 python main.py generate_face_encodings
