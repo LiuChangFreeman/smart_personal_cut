@@ -165,21 +165,27 @@ def analyse():
             group.append((begin,end))
             begin=next
     label=0
-    file_lists=open(filename_file_list, "w")
+    file_lists=open(os.path.join(folder_videos,filename_file_list), "w")
     for begin,end in group:
         start=convert_to_time(begin-time_cut_pre)
         to=convert_to_time(end+time_cut_post)
         label+=1
         filename="cut{}.mp4".format(label)
         file_output=os.path.join(folder_videos,filename)
-        command=command_video_cut.format(start, to, filename_video_input, file_output)
+        file_lists.write("file \'{}\'\n".format(file_output.replace("\\","/")))
+        file_lists.flush()
+        filename_input=os.path.join(folder_videos, filename_video_input)
+        if os.path.exists(filename_input):
+            continue
+        command=command_video_cut.format(start, to, filename_input, file_output)
+        print(command)
         shell = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
         shell.wait()
-        print(command)
-        file_lists.write("file \'{}\'\n".format(filename))
-        file_lists.flush()
     file_lists.close()
-    command=command_video_merge.format(filename_file_list, filename_video_output)
+    arg1=os.path.join(folder_videos,filename_file_list)
+    arg2=os.path.join(folder_videos,filename_video_output)
+    command=command_video_merge.format(arg1, arg2)
+    print(command)
     shell = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     shell.wait()
 
@@ -197,7 +203,7 @@ def main():
     if not os.path.exists(filename_face_encodings):
         #如果face_encoding文件不存在，就进行采集
         generate()
-    face_dectect()
+    # face_dectect()
     analyse()
 
 if __name__=="__main__":
