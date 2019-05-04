@@ -9,6 +9,7 @@ import io
 import os
 import random
 import subprocess
+from tqdm import tqdm
 
 command_snap_shot="ffmpeg -ss {} -i {} -frames:v 1 {}"
 #参数依次为:开始时间、输入视频文件名、截图名
@@ -25,7 +26,7 @@ folder_data="data"
 #示例图片采集的面孔放置的文件夹
 folder_videos="videos"
 #放置视频的文件夹
-filename_video_input= "8.mp4"
+filename_video_input= "1.mp4"
 #需要cut的源视频，需要放置在folder_videos文件夹中
 filename_video_output= "result.mp4"
 #cut完成后导出的视频名，将会放置在folder_videos文件夹中
@@ -35,6 +36,8 @@ filename_static= "static.json"
 #帧画面识别统计文件
 filename_face_encodings="face_encodings.pkl"
 #保存采集到的面孔的face_encoding的文件
+resize_scale=0.5
+#视频画面缩放因子
 threshold_duration = 10
 #如果两个子cut间隔小于这个阈值，就合并为一个cut，单位:秒
 threshold_recognition = 5
@@ -106,6 +109,8 @@ def face_dectect():
     total_face_encoding=pickle.load(open(filename_face_encodings,'rb'))
     file_video=os.path.join(folder_videos,filename_video_input)
     video = cv2.VideoCapture(file_video)
+    frames_total=video.get(cv2.CAP_PROP_FRAME_COUNT)
+    progress=tqdm([i for i in range(int(frames_total))],desc="正在识别视频帧",unit='帧')
     frame_count = 1
     success = True
     begin = time.time()
@@ -113,9 +118,9 @@ def face_dectect():
     while success:
         success, frame = video.read()
         if (frame_count % frames_every_capture == 0):
-            second=int(frame_count/25)
-            print("正在处理该视频的第{}秒".format(second))
-            # frame = cv2.resize(frame, (0, 0),fx=0.8, fy=0.8,interpolation=cv2.INTER_CUBIC)
+            capture=int(frame_count/frames_every_capture)
+            progress.update(frames_every_capture)
+            frame = cv2.resize(frame, (0, 0),fx=resize_scale, fy=resize_scale,interpolation=cv2.INTER_CUBIC)
             # 视频画面可以缩小一些，但是阈值也要调整
             face_locations = face_recognition.face_locations(frame, number_of_times_to_upsample=0, model="cnn")
 
@@ -126,15 +131,24 @@ def face_dectect():
                 0.6:0
             }
             for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+                toleranses_temp={
+                    0.4:0,
+                    0.5:0,
+                    0.6:0
+                }
                 for i, v in enumerate(total_face_encoding):
                     for toleranse in toleranses:
                         match = face_recognition.compare_faces([v], face_encoding, tolerance=toleranse)
                         if match[0]:
-                            toleranses[toleranse]+=1
-            total[second]=toleranses
+                            toleranses_temp[toleranse]+=1
+                for toleranse in toleranses_temp:
+                    if toleranses_temp[toleranse]>toleranses[toleranse]:
+                        toleranses[toleranse]=toleranses_temp[toleranse]
+            total[capture]=toleranses
         frame_count = frame_count + 1
         cv2.waitKey(1)
     end = time.time()
+    progress.close()
     print("识别视频帧共计用时{}秒".format(round(float(end - begin), 3)))
     with io.open(os.path.join(folder_videos,filename_static),"w",encoding="utf-8") as fd:
         text = json.dumps(total, ensure_ascii=False, indent=4)
@@ -151,10 +165,10 @@ def analyse():
     cut_points=[]
     file_static=os.path.join(folder_videos,filename_static)
     data=json.loads(open(file_static).read())
-    for second in data:
-        count_4=data[second]["0.4"]
+    for capture in data:
+        count_4=data[capture]["0.4"]
         if count_4>threshold_recognition:
-            cut_points.append(int(second))
+            cut_points.append(int(capture))
     group=[]
     begin=cut_points[0]
     for i in range(len(cut_points)-1):
@@ -164,22 +178,25 @@ def analyse():
         if next>now+threshold_duration:
             group.append((begin,end))
             begin=next
+
+    file_video=os.path.join(folder_videos,filename_video_input)
+    video = cv2.VideoCapture(file_video)
+    fps=int(video.get(cv2.CAP_PROP_FPS))
+
     label=0
     file_lists=open(os.path.join(folder_videos,filename_file_list), "w")
     for begin,end in group:
-        start=convert_to_time(begin-time_cut_pre)
-        to=convert_to_time(end+time_cut_post)
+        start=convert_to_time(begin*frames_every_capture//fps-time_cut_pre)
+        to=convert_to_time(end*frames_every_capture//fps+time_cut_post)
         label+=1
         filename="cut{}.mp4".format(label)
         file_output=os.path.join(folder_videos,filename)
         file_lists.write("file \'{}\'\n".format(file_output.replace("\\","/")))
         file_lists.flush()
         filename_input=os.path.join(folder_videos, filename_video_input)
-        if os.path.exists(filename_input):
-            continue
         command=command_video_cut.format(start, to, filename_input, file_output)
         print(command)
-        shell = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+        shell = subprocess.Popen(command, shell=True)
         shell.wait()
     file_lists.close()
     arg1=os.path.join(folder_videos,filename_file_list)
@@ -203,7 +220,7 @@ def main():
     if not os.path.exists(filename_face_encodings):
         #如果face_encoding文件不存在，就进行采集
         generate()
-    # face_dectect()
+    face_dectect()
     analyse()
 
 if __name__=="__main__":
