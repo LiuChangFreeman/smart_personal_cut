@@ -1,14 +1,15 @@
 # 智能单人cut
 本工具可以根据提供的素材，学习并识别影视节目中的某位人物，并且根据识别的结果，对提供的视频进行单人CUT
 
-基础工具:
+需要安装(在环境变量中)的工具:
 
-1. ffmpeg(需要配置到环境变量)
-2. Python 2.7-3.7
+1. ffmpeg
+2. cmake
+2. Python 2.7/3.7
 
 Python库:
 
-1. dlib(gpu版本可能需要自行编译)
+1. dlib(gpu版本需编译)
 2. face_recognition
 3. opencv-python
 
